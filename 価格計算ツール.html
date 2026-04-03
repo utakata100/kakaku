@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>かにのTシャツ屋さん｜価格計算ツール</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: #fff8f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #e8523a, #f07a30);
+      color: white;
+      text-align: center;
+      padding: 28px 16px 24px;
+    }
+    header h1 { font-size: 22px; font-weight: bold; }
+    header p  { font-size: 13px; margin-top: 6px; opacity: 0.9; }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 20px 14px 60px;
+    }
+
+    /* ステップカード */
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .card-title {
+      background: #f5f5f5;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #888;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #eee;
+    }
+    .card-title span {
+      display: inline-block;
+      background: #e8523a;
+      color: white;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      line-height: 22px;
+      text-align: center;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+    .card-body { padding: 18px; }
+
+    /* 商品選択 */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .product-btn {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 12px 10px;
+      background: white;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .product-btn:hover { border-color: #f07a30; background: #fff8f5; }
+    .product-btn.selected { border-color: #e8523a; background: #fff3ee; }
+    .product-btn .code { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+    .product-btn .pname { font-size: 13px; font-weight: bold; color: #333; line-height: 1.4; }
+    .product-btn .plain { font-size: 12px; color: #e8523a; margin-top: 4px; }
+
+    /* プリント種別 */
+    .print-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .print-btn {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 14px 8px;
+      background: white;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .print-btn:hover { border-color: #f07a30; background: #fff8f5; }
+    .print-btn.selected { border-color: #e8523a; background: #fff3ee; }
+    .print-btn .icon { font-size: 22px; margin-bottom: 6px; }
+    .print-btn .label { font-size: 13px; font-weight: bold; color: #333; }
+    .print-btn .sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+    /* 枚数 */
+    .qty-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .qty-btn {
+      width: 40px; height: 40px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .qty-btn:hover { border-color: #e8523a; color: #e8523a; }
+    .qty-input {
+      width: 90px;
+      height: 40px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      font-family: inherit;
+      color: #333;
+      outline: none;
+    }
+    .qty-input:focus { border-color: #e8523a; }
+    .qty-label { font-size: 15px; color: #555; }
+    .qty-note { font-size: 12px; color: #e8523a; margin-top: 8px; font-weight: bold; }
+
+    /* オプション */
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .option-row:last-child { border-bottom: none; }
+    .option-label { font-size: 14px; color: #333; }
+    .option-sub   { font-size: 12px; color: #aaa; margin-top: 2px; }
+    .option-ctrl  { display: flex; align-items: center; gap: 8px; }
+    .opt-btn {
+      width: 32px; height: 32px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .opt-btn:hover { border-color: #e8523a; color: #e8523a; }
+    .opt-val {
+      width: 32px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    .toggle {
+      position: relative;
+      width: 48px; height: 26px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: #ccc; border-radius: 26px;
+      cursor: pointer; transition: 0.2s;
+    }
+    .slider:before {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 3px; bottom: 3px;
+      background: white; border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .slider { background: #e8523a; }
+    .toggle input:checked + .slider:before { transform: translateX(22px); }
+    .toggle-price { font-size: 13px; color: #e8523a; }
+
+    /* 結果 */
+    .result-card {
+      background: linear-gradient(135deg, #e8523a, #f07a30);
+      border-radius: 14px;
+      padding: 24px 20px;
+      color: white;
+      margin-top: 8px;
+    }
+    .result-title { font-size: 13px; opacity: 0.85; margin-bottom: 6px; }
+    .result-total {
+      font-size: 42px;
+      font-weight: bold;
+      letter-spacing: -0.02em;
+    }
+    .result-total small { font-size: 20px; }
+    .result-unit { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+    .result-breakdown {
+      margin-top: 16px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .result-row.total-row {
+      border-top: 1px solid rgba(255,255,255,0.3);
+      margin-top: 6px;
+      padding-top: 6px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+    .result-note {
+      margin-top: 12px;
+      font-size: 11px;
+      opacity: 0.75;
+      line-height: 1.8;
+    }
+    .empty-msg {
+      text-align: center;
+      color: #bbb;
+      padding: 28px 0;
+      font-size: 14px;
+    }
+
+    /* リセットボタン */
+    .reset-btn {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px;
+      border: 2px solid #e8523a;
+      border-radius: 10px;
+      background: white;
+      color: #e8523a;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .reset-btn:hover { background: #fff3ee; }
+
+    @media (max-width: 400px) {
+      .product-grid { grid-template-columns: 1fr; }
+      .print-options { grid-template-columns: 1fr; }
+      .result-total { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🦀 かにのTシャツ屋さん</h1>
+  <p>価格計算ツール（税込・送料込）</p>
+</header>
+
+<div class="container">
+
+  <!-- STEP1: 商品選択 -->
+  <div class="card">
+    <div class="card-title"><span>1</span>商品を選んでください</div>
+    <div class="card-body">
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+  </div>
+
+  <!-- STEP2: プリント -->
+  <div class="card">
+    <div class="card-title"><span>2</span>プリントの種類</div>
+    <div class="card-body">
+      <div class="print-options">
+        <button class="print-btn selected" onclick="selectPrint('none')" id="print-none">
+          <div class="icon">👕</div>
+          <div class="label">プリントなし</div>
+          <div class="sub">無地のみ</div>
+        </button>
+        <button class="print-btn" onclick="selectPrint('wp')" id="print-wp">
+          <div class="icon">🔵</div>
+          <div class="label">ワンポイント</div>
+          <div class="sub">10×15cm以内</div>
+        </button>
+        <button class="print-btn" onclick="selectPrint('basic')" id="print-basic">
+          <div class="icon">🟧</div>
+          <div class="label">基本サイズ</div>
+          <div class="sub">26×29cm以内</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP3: 枚数 -->
+  <div class="card">
+    <div class="card-title"><span>3</span>注文枚数</div>
+    <div class="card-body">
+      <div class="qty-wrap">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <input class="qty-input" id="qtyInput" type="number" min="1" value="10" oninput="updateCalc()">
+        <button class="qty-btn" onclick="changeQty(1)">＋</button>
+        <span class="qty-label">枚</span>
+      </div>
+      <div class="qty-note" id="qtyNote"></div>
+    </div>
+  </div>
+
+  <!-- STEP4: オプション -->
+  <div class="card">
+    <div class="card-title"><span>4</span>追加オプション</div>
+    <div class="card-body">
+
+      <div class="option-row">
+        <div>
+          <div class="option-label">プリント箇所の追加</div>
+          <div class="option-sub" id="addPrintSub">ワンポイント: +400円/箇所・基本: +700円/箇所</div>
+        </div>
+        <div class="option-ctrl">
+          <button class="opt-btn" onclick="changeOpt('addPrint', -1)">−</button>
+          <span class="opt-val" id="addPrintVal">0</span>
+          <button class="opt-btn" onclick="changeOpt('addPrint', 1)">＋</button>
+          <span style="font-size:12px;color:#aaa;">箇所</span>
+        </div>
+      </div>
+
+      <div class="option-row">
+        <div>
+          <div class="option-label">プリントサイズ拡大</div>
+          <div class="option-sub">基本→約A3サイズ +400円/箇所</div>
+        </div>
+        <div class="option-ctrl">
+          <button class="opt-btn" onclick="changeOpt('expand', -1)">−</button>
+          <span class="opt-val" id="expandVal">0</span>
+          <button class="opt-btn" onclick="changeOpt('expand', 1)">＋</button>
+          <span style="font-size:12px;color:#aaa;">箇所</span>
+        </div>
+      </div>
+
+      <div class="option-row">
+        <div>
+          <div class="option-label">畳み袋詰め</div>
+          <div class="option-sub">+100円 / 1枚</div>
+        </div>
+        <div class="option-ctrl">
+          <label class="toggle">
+            <input type="checkbox" id="bagToggle" onchange="updateCalc()">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-price" id="bagPrice"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-card" id="resultCard">
+    <div class="empty-msg" style="color:rgba(255,255,255,0.7);">
+      ↑ 商品を選ぶと金額が表示されます
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">🔄 リセット</button>
+
+</div><!-- /container -->
+
+<script>
+// =====================
+// データ
+// =====================
+const PRODUCTS = [
+  {
+    id: 'cvt',
+    code: '00085-CVT',
+    name: '5.6oz ヘビーウェイトTシャツ',
+    plain: 700,
+    wp:    [1980, 1900, 1800, 1700, 1500, 1450, 1400, 1350, 1300],
+    basic: [3000, 2800, 2500, 2400, 2200, 2000, 1950, 1900, 1850],
+  },
+  {
+    id: 'crt',
+    code: '00106-CRT',
+    name: '5.6oz ヘビーウェイト ラグランT',
+    plain: 1000,
+    wp:    [2280, 2200, 2100, 2000, 1800, 1750, 1700, 1650, 1600],
+    basic: [3300, 3100, 2800, 2700, 2500, 2300, 2250, 2200, 2150],
+  },
+  {
+    id: 'hq',
+    code: '5001-01',
+    name: '5.6oz ハイクオリティーT',
+    plain: 800,
+    wp:    [2080, 2000, 1900, 1800, 1600, 1550, 1500, 1450, 1400],
+    basic: [3100, 2900, 2600, 2500, 2300, 2100, 2050, 2000, 1950],
+  },
+  {
+    id: 'rag',
+    code: '5041-01',
+    name: '5.6oz ラグランスリーブT',
+    plain: 1400,
+    wp:    [2680, 2600, 2500, 2400, 2200, 2150, 2100, 2050, 2000],
+    basic: [3700, 3500, 3200, 3100, 2900, 2700, 2650, 2600, 2550],
+  },
+];
+
+// 枚数ブラケット: [min, max, index]
+const BRACKETS = [
+  [1,   1,   0],
+  [2,   2,   1],
+  [3,   5,   2],
+  [6,   9,   3],
+  [10,  19,  4],
+  [20,  29,  5],
+  [30,  39,  6],
+  [40,  49,  7],
+  [50,  99,  8],
+  [100, Infinity, 8], // 100枚以上は同単価で10%OFF
+];
+
+// =====================
+// 状態
+// =====================
+let state = {
+  product: null,
+  printType: 'none', // 'none' | 'wp' | 'basic'
+  qty: 10,
+  addPrint: 0,
+  expand: 0,
+  bag: false,
+};
+
+// =====================
+// 初期化
+// =====================
+function init() {
+  const grid = document.getElementById('productGrid');
+  PRODUCTS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'product-btn';
+    btn.id = 'prod-' + p.id;
+    btn.innerHTML = `
+      <div class="code">${p.code}</div>
+      <div class="pname">${p.name}</div>
+      <div class="plain">無地 ¥${p.plain.toLocaleString()}〜</div>
+    `;
+    btn.onclick = () => selectProduct(p.id);
+    grid.appendChild(btn);
+  });
+  updateCalc();
+}
+
+// =====================
+// イベント
+// =====================
+function selectProduct(id) {
+  state.product = id;
+  document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('prod-' + id).classList.add('selected');
+  updateCalc();
+}
+
+function selectPrint(type) {
+  state.printType = type;
+  ['none','wp','basic'].forEach(t => {
+    document.getElementById('print-' + t).classList.toggle('selected', t === type);
+  });
+  // 追加箇所リセット
+  state.addPrint = 0;
+  document.getElementById('addPrintVal').textContent = '0';
+  updateCalc();
+}
+
+function changeQty(delta) {
+  const input = document.getElementById('qtyInput');
+  let v = parseInt(input.value) || 1;
+  v = Math.max(1, v + delta);
+  input.value = v;
+  state.qty = v;
+  updateCalc();
+}
+
+function changeOpt(key, delta) {
+  state[key] = Math.max(0, (state[key] || 0) + delta);
+  document.getElementById(key + 'Val').textContent = state[key];
+  updateCalc();
+}
+
+function resetAll() {
+  state = { product: null, printType: 'none', qty: 10, addPrint: 0, expand: 0, bag: false };
+  document.querySelectorAll('.product-btn').forEach(b => b.classList.remove('selected'));
+  ['none','wp','basic'].forEach(t => {
+    document.getElementById('print-' + t).classList.toggle('selected', t === 'none');
+  });
+  document.getElementById('qtyInput').value = 10;
+  document.getElementById('addPrintVal').textContent = '0';
+  document.getElementById('expandVal').textContent = '0';
+  document.getElementById('bagToggle').checked = false;
+  updateCalc();
+}
+
+// =====================
+// 計算
+// =====================
+function getBracketIndex(qty) {
+  for (const [min, max, idx] of BRACKETS) {
+    if (qty >= min && qty <= max) return { idx, over100: qty >= 100 };
+  }
+  return { idx: 8, over100: true };
+}
+
+function getAddPrintCost() {
+  if (state.addPrint <= 0) return 0;
+  const perUnit = state.printType === 'basic' ? 700 : 400;
+  return perUnit * state.addPrint;
+}
+
+function updateCalc() {
+  // 状態を入力から読む
+  const qtyInput = document.getElementById('qtyInput');
+  state.qty = Math.max(1, parseInt(qtyInput.value) || 1);
+  state.bag = document.getElementById('bagToggle').checked;
+
+  const qty = state.qty;
+
+  // 注記
+  const noteEl = document.getElementById('qtyNote');
+  if (qty >= 100) {
+    noteEl.textContent = '🎉 100枚以上のため 10%OFF 適用！';
+  } else {
+    const next = qty < 3 ? 3 : qty < 6 ? 6 : qty < 10 ? 10 : qty < 20 ? 20 : qty < 30 ? 30 : qty < 40 ? 40 : qty < 50 ? 50 : qty < 100 ? 100 : null;
+    noteEl.textContent = next ? `あと ${next - qty} 枚で単価が下がります` : '';
+  }
+
+  // 袋詰めラベル
+  document.getElementById('bagPrice').textContent = state.bag ? `+¥${(100 * qty).toLocaleString()}` : '';
+
+  // 追加オプションのラベル
+  const sub = document.getElementById('addPrintSub');
+  if (state.printType === 'basic') {
+    sub.textContent = '基本サイズ印刷: +700円/箇所';
+  } else if (state.printType === 'wp') {
+    sub.textContent = 'ワンポイント印刷: +400円/箇所';
+  } else {
+    sub.textContent = 'プリント種別を選んでから設定';
+  }
+
+  // 商品未選択
+  if (!state.product) {
+    document.getElementById('resultCard').innerHTML = `
+      <div class="empty-msg" style="color:rgba(255,255,255,0.7);">
+        ↑ 商品を選ぶと金額が表示されます
+      </div>`;
+    return;
+  }
+
+  const p = PRODUCTS.find(x => x.id === state.product);
+  const { idx, over100 } = getBracketIndex(qty);
+
+  // 1枚あたりの基本価格
+  let unitBase;
+  if (state.printType === 'none') {
+    unitBase = p.plain;
+  } else if (state.printType === 'wp') {
+    unitBase = p.wp[idx];
+  } else {
+    unitBase = p.basic[idx];
+  }
+
+  // 追加コスト（1枚あたり）
+  const addPrintUnit = getAddPrintCost();
+  const expandUnit   = state.expand * 400;
+
+  let unitPrice = unitBase + addPrintUnit + expandUnit;
+  if (over100) unitPrice = Math.floor(unitPrice * 0.9);
+
+  const subtotal = unitPrice * qty;
+  const bagTotal = state.bag ? 100 * qty : 0;
+  const total    = subtotal + bagTotal;
+
+  // 内訳
+  let breakdownHTML = `
+    <div class="result-row">
+      <span>基本価格（1枚）</span>
+      <span>¥${unitBase.toLocaleString()}</span>
+    </div>`;
+
+  if (addPrintUnit > 0) {
+    const label = state.printType === 'basic' ? '追加箇所（基本サイズ）' : '追加箇所（ワンポイント）';
+    breakdownHTML += `<div class="result-row"><span>${label} ×${state.addPrint}</span><span>+¥${addPrintUnit.toLocaleString()}</span></div>`;
+  }
+  if (expandUnit > 0) {
+    breakdownHTML += `<div class="result-row"><span>拡大オプション ×${state.expand}</span><span>+¥${expandUnit.toLocaleString()}</span></div>`;
+  }
+  if (over100) {
+    breakdownHTML += `<div class="result-row"><span>100枚以上 10%OFF</span><span style="color:#ffd;">適用済み</span></div>`;
+  }
+  breakdownHTML += `<div class="result-row"><span>× ${qty}枚</span><span>= ¥${subtotal.toLocaleString()}</span></div>`;
+  if (bagTotal > 0) {
+    breakdownHTML += `<div class="result-row"><span>畳み袋詰め（×${qty}枚）</span><span>+¥${bagTotal.toLocaleString()}</span></div>`;
+  }
+  breakdownHTML += `<div class="result-row total-row"><span>合計</span><span>¥${total.toLocaleString()}</span></div>`;
+
+  document.getElementById('resultCard').innerHTML = `
+    <div class="result-title">${p.code} ${p.name}</div>
+    <div class="result-total"><small>¥</small>${total.toLocaleString()}<small> 円</small></div>
+    <div class="result-unit">（税込・送料込 / 1枚あたり ¥${unitPrice.toLocaleString()}）</div>
+    <div class="result-breakdown">${breakdownHTML}</div>
+    <div class="result-note">
+      ※ 価格はすべて税込み・送料込みです<br>
+      ※ 複数サイズ混在・特殊仕様はお問い合わせください
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
